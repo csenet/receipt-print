@@ -16,11 +16,10 @@ services:
     command: tunnel --config /etc/cloudflared/config.yml run
     volumes:
       - ./cloudflared.yml:/etc/cloudflared/config.yml:ro
-      - ./cloudflared-credentials.json:/root/.cloudflared/cert.pem:ro
+      - ./cloudflared-credentials.json:/etc/cloudflared/credentials.json:ro
     depends_on:
       - web
     restart: unless-stopped
-    network_mode: "host"
     
   # Example printer API service (replace with your actual printer API)
   # printer-api:
