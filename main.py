@@ -12,6 +12,12 @@ from fastapi.responses import FileResponse
 import requests
 from PIL import Image
 import io
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+    print("HEIC/HEIF support enabled")
+except ImportError:
+    print("HEIC/HEIF support not available - pillow_heif not installed")
 
 
 app = FastAPI(
@@ -41,8 +47,14 @@ jobs_db: Dict[str, Dict[str, Any]] = {}
 def validate_image(file_content: bytes) -> bool:
     try:
         image = Image.open(io.BytesIO(file_content))
-        return image.format.lower() in ['jpeg', 'jpg', 'png', 'gif']
-    except Exception:
+        supported_formats = ['jpeg', 'jpg', 'png', 'gif', 'webp', 'heic', 'heif']
+        return image.format.lower() in supported_formats
+    except Exception as e:
+        print(f"Image validation error: {str(e)}")
+        # HEICファイルの場合、magicバイトで判定
+        if file_content.startswith(b'\x00\x00\x00\x18ftypheic') or file_content.startswith(b'\x00\x00\x00\x20ftypheic'):
+            print("Detected HEIC format")
+            return True
         return False
 
 
