@@ -46,15 +46,47 @@ jobs_db: Dict[str, Dict[str, Any]] = {}
 
 def validate_image(file_content: bytes) -> bool:
     try:
+        # まずPILで開いてみる
         image = Image.open(io.BytesIO(file_content))
         supported_formats = ['jpeg', 'jpg', 'png', 'gif', 'webp', 'heic', 'heif']
-        return image.format.lower() in supported_formats
+        format_name = image.format.lower() if image.format else ''
+        print(f"PIL detected format: {format_name}")
+        return format_name in supported_formats
     except Exception as e:
-        print(f"Image validation error: {str(e)}")
+        print(f"PIL validation error: {str(e)}")
+        
         # HEICファイルの場合、magicバイトで判定
-        if file_content.startswith(b'\x00\x00\x00\x18ftypheic') or file_content.startswith(b'\x00\x00\x00\x20ftypheic'):
-            print("Detected HEIC format")
+        magic_bytes = file_content[:32] if len(file_content) >= 32 else file_content
+        print(f"File magic bytes: {magic_bytes[:16].hex()}")
+        
+        # HEIC/HEIF のマジックバイトパターン
+        heic_patterns = [
+            b'ftypheic',  # HEIC
+            b'ftypheif',  # HEIF  
+            b'ftypmif1',  # HEIF variant
+            b'ftypmsf1',  # HEIF variant
+        ]
+        
+        for pattern in heic_patterns:
+            if pattern in magic_bytes:
+                print(f"Detected HEIC/HEIF format by magic bytes: {pattern}")
+                return True
+        
+        # 通常の画像形式のマジックバイト
+        if file_content.startswith(b'\xFF\xD8\xFF'):  # JPEG
+            print("Detected JPEG by magic bytes")
             return True
+        elif file_content.startswith(b'\x89PNG'):  # PNG
+            print("Detected PNG by magic bytes")
+            return True
+        elif file_content.startswith(b'GIF8'):  # GIF
+            print("Detected GIF by magic bytes")
+            return True
+        elif file_content.startswith(b'RIFF') and b'WEBP' in file_content[:12]:  # WEBP
+            print("Detected WEBP by magic bytes")
+            return True
+            
+        print("Unknown file format")
         return False
 
 
@@ -75,7 +107,7 @@ async def upload_image(image: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Empty file received.")
         
         if not validate_image(file_content):
-            raise HTTPException(status_code=400, detail="Invalid image format. Only JPG, PNG, GIF are supported.")
+            raise HTTPException(status_code=400, detail="Invalid image format. Only JPG, PNG, GIF, HEIC, HEIF are supported.")
         
         if len(file_content) > 10 * 1024 * 1024:  # 10MB limit
             raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB.")
