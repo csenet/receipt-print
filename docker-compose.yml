@@ -20,6 +20,9 @@ services:
     depends_on:
       - web
     restart: unless-stopped
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     
   # Example printer API service (replace with your actual printer API)
   # printer-api:
