@@ -150,18 +150,53 @@ async def print_image(job_id: str = FastAPIPath(...)):
         raise HTTPException(status_code=404, detail="Job not found")
     
     job = jobs_db[job_id]
+    print(f"Starting print job for: {job_id}, file: {job['filename']}")
     
     try:
-        with open(job["file_path"], "rb") as f:
+        # ファイルが存在するか確認
+        if not os.path.exists(job["file_path"]):
+            print(f"File not found: {job['file_path']}")
+            raise HTTPException(status_code=404, detail="Image file not found")
+        
+        # HEIC形式の場合は一般的な形式に変換
+        file_path = job["file_path"]
+        converted_file = None
+        
+        if job["filename"].lower().endswith(('.heic', '.heif')):
+            print(f"Converting HEIC/HEIF file: {job['filename']}")
+            try:
+                # HEIC を JPEG に変換
+                with Image.open(file_path) as img:
+                    # RGBモードに変換
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    
+                    # 一時ファイルとして保存
+                    converted_path = file_path.replace('.HEIC', '.jpg').replace('.heic', '.jpg').replace('.HEIF', '.jpg').replace('.heif', '.jpg')
+                    img.save(converted_path, 'JPEG', quality=85)
+                    converted_file = converted_path
+                    print(f"Converted to: {converted_path}")
+            except Exception as convert_error:
+                print(f"HEIC conversion error: {str(convert_error)}")
+                # 変換に失敗した場合は元ファイルを使用
+                converted_file = file_path
+        else:
+            converted_file = file_path
+        
+        with open(converted_file, "rb") as f:
             files = {"imgf": (job["filename"], f, "image/*")}
             
             # ランダムに /0 または /1 エンドポイントを選択
             endpoint = random.choice([0, 1])
+            print(f"Sending to printer API: {API_HOST}/{endpoint}")
+            
             response = requests.post(f"{API_HOST}/{endpoint}", files=files, timeout=30)
+            print(f"Printer API response: {response.status_code}")
             
             if response.status_code == 200:
                 jobs_db[job_id]["status"] = "completed"
                 jobs_db[job_id]["updated_at"] = datetime.now().isoformat()
+                print(f"Print job completed: {job_id}")
                 
                 return {
                     "success": True,
@@ -171,28 +206,41 @@ async def print_image(job_id: str = FastAPIPath(...)):
             else:
                 jobs_db[job_id]["status"] = "failed"
                 jobs_db[job_id]["updated_at"] = datetime.now().isoformat()
+                print(f"Print service error: {response.status_code}, {response.text}")
                 
                 raise HTTPException(
                     status_code=500, 
-                    detail=f"Print service returned error: {response.status_code}"
+                    detail=f"Print service returned error: {response.status_code} - {response.text}"
                 )
                 
     except requests.exceptions.RequestException as e:
         jobs_db[job_id]["status"] = "failed"
         jobs_db[job_id]["updated_at"] = datetime.now().isoformat()
+        print(f"Connection error: {str(e)}")
         
         raise HTTPException(
             status_code=500, 
             detail=f"Failed to connect to print service: {str(e)}"
         )
+    except HTTPException:
+        raise
     except Exception as e:
         jobs_db[job_id]["status"] = "failed"
         jobs_db[job_id]["updated_at"] = datetime.now().isoformat()
+        print(f"General print error: {str(e)}")
         
         raise HTTPException(
             status_code=500, 
             detail=f"Print job failed: {str(e)}"
         )
+    finally:
+        # 変換された一時ファイルを削除
+        if converted_file and converted_file != file_path and os.path.exists(converted_file):
+            try:
+                os.remove(converted_file)
+                print(f"Cleaned up converted file: {converted_file}")
+            except:
+                pass
 
 
 @app.get("/api/status/{job_id}")
