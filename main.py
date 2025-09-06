@@ -20,6 +20,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# CORS対応を追加
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 API_HOST = os.getenv("API_HOST", "http://printer-api:8080")
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -37,39 +48,56 @@ def validate_image(file_content: bytes) -> bool:
 
 @app.post("/api/upload")
 async def upload_image(image: UploadFile = File(...)):
-    if not image.content_type or not image.content_type.startswith('image/'):
-        raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed.")
-    
-    file_content = await image.read()
-    
-    if not validate_image(file_content):
-        raise HTTPException(status_code=400, detail="Invalid image format. Only JPG, PNG, GIF are supported.")
-    
-    if len(file_content) > 10 * 1024 * 1024:  # 10MB limit
-        raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB.")
-    
-    job_id = str(uuid.uuid4())
-    filename = f"{job_id}_{image.filename}"
-    file_path = UPLOAD_DIR / filename
-    
-    with open(file_path, "wb") as f:
-        f.write(file_content)
-    
-    jobs_db[job_id] = {
-        "filename": image.filename,
-        "file_path": str(file_path),
-        "size": len(file_content),
-        "status": "uploaded",
-        "created_at": datetime.now().isoformat(),
-        "updated_at": datetime.now().isoformat()
-    }
-    
-    return {
-        "success": True,
-        "jobId": job_id,
-        "filename": image.filename,
-        "size": len(file_content)
-    }
+    try:
+        print(f"Received file: {image.filename}, content_type: {image.content_type}, size: {image.size}")
+        
+        # Content-type チェックを緩く
+        if image.content_type and not image.content_type.startswith('image/'):
+            print(f"Invalid content type: {image.content_type}")
+            raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed.")
+        
+        file_content = await image.read()
+        print(f"File content size: {len(file_content)}")
+        
+        if len(file_content) == 0:
+            raise HTTPException(status_code=400, detail="Empty file received.")
+        
+        if not validate_image(file_content):
+            raise HTTPException(status_code=400, detail="Invalid image format. Only JPG, PNG, GIF are supported.")
+        
+        if len(file_content) > 10 * 1024 * 1024:  # 10MB limit
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 10MB.")
+        
+        job_id = str(uuid.uuid4())
+        safe_filename = image.filename or f"image_{job_id}"
+        filename = f"{job_id}_{safe_filename}"
+        file_path = UPLOAD_DIR / filename
+        
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+        
+        jobs_db[job_id] = {
+            "filename": safe_filename,
+            "file_path": str(file_path),
+            "size": len(file_content),
+            "status": "uploaded",
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        print(f"Successfully uploaded: {job_id}")
+        
+        return {
+            "success": True,
+            "jobId": job_id,
+            "filename": safe_filename,
+            "size": len(file_content)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 
 @app.post("/api/print/{job_id}")
