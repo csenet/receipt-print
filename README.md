@@ -36,10 +36,14 @@ cd receipt-print
 cp .env.example .env
 ```
 
-`.env` ファイルを編集してAPIホストを設定:
+`.env` ファイルを編集:
 
 ```bash
+# プリンターAPIホスト
 API_HOST=http://your-printer-api:8080
+
+# Cloudflareトンネルトークン（Cloudflareダッシュボードから取得）
+CLOUDFLARE_TUNNEL_TOKEN=eyJh...（長いトークン文字列）
 ```
 
 ### 3. Docker Composeで起動

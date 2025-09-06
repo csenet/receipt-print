@@ -6,6 +6,7 @@ uploads/
 
 # Cloudflare credentials (IMPORTANT: Never commit these!)
 cloudflared-credentials.json
+cloudflared.yml
 
 # Python
 __pycache__/
