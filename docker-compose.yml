@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - API_HOST=${API_HOST:-http://printer-api:8080}
+    volumes:
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    
+  # Example printer API service (replace with your actual printer API)
+  # printer-api:
+  #   image: your-printer-api:latest
+  #   ports:
+  #     - "8080:8080"
+  #   restart: unless-stopped

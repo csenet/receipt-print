@@ -1,0 +1,127 @@
+# 📱 Receipt Print Service
+
+スマホから選択した画像をプリントできるWebサービスです。
+
+## 🚀 機能
+
+- スマホ対応のレスポンシブUI
+- ドラッグ&ドロップでの画像アップロード  
+- 画像プレビュー機能
+- プリント実行機能
+- リアルタイムステータス表示
+
+## 🛠 技術スタック
+
+- **バックエンド**: Python + FastAPI
+- **フロントエンド**: HTML + CSS + JavaScript (静的ファイル)
+- **コンテナ**: Docker + Docker Compose
+
+## 📋 必要要件
+
+- Docker
+- Docker Compose
+
+## 🚀 起動方法
+
+### 1. リポジトリのクローン
+
+```bash
+git clone <repository-url>
+cd receipt-print
+```
+
+### 2. 環境変数の設定
+
+```bash
+cp .env.example .env
+```
+
+`.env` ファイルを編集してAPIホストを設定:
+
+```bash
+API_HOST=http://your-printer-api:8080
+```
+
+### 3. Docker Composeで起動
+
+```bash
+docker-compose up -d
+```
+
+### 4. ブラウザでアクセス
+
+```
+http://localhost:3000
+```
+
+## 📊 API エンドポイント
+
+### アップロード
+- **POST** `/api/upload`
+- 画像ファイルをアップロードしてJob IDを取得
+
+### プリント実行  
+- **POST** `/api/print/{jobId}`
+- 指定したJob IDの画像をプリント
+
+### ステータス確認
+- **GET** `/api/status/{jobId}`
+- プリントジョブのステータスを確認
+
+## 🔧 設定
+
+### API_HOST 環境変数
+
+プリンターAPIのホストURLを指定します:
+
+```bash
+# Docker Composeの場合
+API_HOST=http://printer-api:8080
+
+# ローカル開発の場合  
+API_HOST=http://localhost:8080
+
+# 外部サービスの場合
+API_HOST=https://your-printer-api.com
+```
+
+## 📱 使い方
+
+1. ブラウザで `http://localhost:3000` にアクセス
+2. 「画像をクリックして選択」または画像をドラッグ&ドロップ
+3. 画像プレビューを確認
+4. 「画像をアップロード」ボタンをクリック
+5. アップロード完了後、「プリント実行」ボタンをクリック
+6. プリント完了まで待機
+
+## 🔍 トラブルシューティング
+
+### プリンターAPIに接続できない場合
+
+1. API_HOST環境変数が正しく設定されているか確認
+2. プリンターAPIが起動しているか確認
+3. ネットワーク接続を確認
+
+### 画像アップロードが失敗する場合
+
+1. ファイルが画像形式（JPG、PNG、GIF）か確認
+2. ファイルサイズが10MB以下か確認
+3. ブラウザのコンソールでエラーログを確認
+
+## 📝 開発
+
+### ローカル開発
+
+```bash
+# Python環境のセットアップ
+pip install -r requirements.txt
+
+# 開発サーバー起動
+python main.py
+```
+
+### ログ確認
+
+```bash
+docker-compose logs -f web
+```

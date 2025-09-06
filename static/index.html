@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像プリントサービス</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab, #ff6b9d, #c44569, #f8b500, #6c5ce7);
+            background-size: 400% 400%;
+            background-attachment: fixed;
+            animation: gradientShift 10s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.15) 0%, transparent 30%);
+            animation: sparkle 3s ease-in-out infinite alternate;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes sparkle {
+            0% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            100% {
+                opacity: 0.7;
+                transform: scale(1.02);
+            }
+        }
+
+        .container {
+            background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.85));
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 
+                0 20px 40px rgba(0,0,0,0.1),
+                0 0 0 1px rgba(255,255,255,0.2),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            animation: containerGlow 4s ease-in-out infinite alternate;
+        }
+
+        @keyframes containerGlow {
+            0% {
+                box-shadow: 
+                    0 20px 40px rgba(0,0,0,0.1),
+                    0 0 0 1px rgba(255,255,255,0.2),
+                    inset 0 1px 0 rgba(255,255,255,0.3),
+                    0 0 30px rgba(255,255,255,0.3);
+            }
+            100% {
+                box-shadow: 
+                    0 25px 50px rgba(0,0,0,0.15),
+                    0 0 0 1px rgba(255,255,255,0.3),
+                    inset 0 1px 0 rgba(255,255,255,0.4),
+                    0 0 50px rgba(255,255,255,0.5);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: border-color 0.3s ease;
+            cursor: pointer;
+            z-index: 5;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        #imageInput {
+            display: none;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #ddd;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff6b9d, #c44569, #f8b500, #6c5ce7);
+            background-size: 300% 300%;
+            animation: buttonGradient 3s ease infinite;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:disabled {
+            background: linear-gradient(45deg, #ccc, #999);
+            cursor: not-allowed;
+            transform: none;
+            animation: none;
+        }
+
+        @keyframes buttonGradient {
+            0% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        .preview {
+            margin-top: 20px;
+            text-align: center;
+            display: none;
+        }
+
+        .preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .cat-runner {
+            position: relative;
+            width: 100%;
+            height: 60px;
+            margin: 20px 0;
+            overflow: hidden;
+            background: linear-gradient(90deg, 
+                rgba(255,255,255,0.1) 0%, 
+                rgba(255,255,255,0.3) 50%, 
+                rgba(255,255,255,0.1) 100%);
+            border-radius: 30px;
+            display: none;
+        }
+
+        .cat {
+            position: absolute;
+            font-size: 32px;
+            top: 15px;
+            animation: catRun 2s linear infinite;
+        }
+
+        .printer-icon {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 32px;
+            animation: printerBlink 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes catRun {
+            0% {
+                left: -50px;
+                transform: scaleX(1);
+            }
+            45% {
+                left: 45%;
+                transform: scaleX(1);
+            }
+            50% {
+                left: 50%;
+                transform: scaleX(-1);
+            }
+            95% {
+                left: -30px;
+                transform: scaleX(-1);
+            }
+            100% {
+                left: -50px;
+                transform: scaleX(-1);
+            }
+        }
+
+        @keyframes printerBlink {
+            0% { opacity: 0.7; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid #ff6b9d;
+            border-right: 4px solid #f8b500;
+            border-bottom: 4px solid #23d5ab;
+            border-left: 4px solid #6c5ce7;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite, rainbow 2s ease-in-out infinite alternate;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes rainbow {
+            0% {
+                filter: hue-rotate(0deg) brightness(1);
+                transform: rotate(0deg) scale(1);
+            }
+            100% {
+                filter: hue-rotate(180deg) brightness(1.2);
+                transform: rotate(360deg) scale(1.05);
+            }
+        }
+
+        .loading div:last-child {
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.7;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 1;
+                transform: scale(1.02);
+            }
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .file-info h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .file-details {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 画像プリントサービス</h1>
+        
+        <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">画像をクリックして選択するか<br>ここにドラッグ&ドロップしてください</div>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+
+        <div class="preview" id="preview">
+            <img id="previewImage" src="" alt="プレビュー">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <h3>📋 ファイル情報</h3>
+            <div class="file-details" id="fileDetails"></div>
+        </div>
+
+        <button class="btn" id="uploadBtn" onclick="uploadImage()" disabled>📤 画像をアップロード</button>
+        <button class="btn" id="printBtn" onclick="printImage()" style="display:none;">🖨️ プリント実行</button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>処理中...</div>
+        </div>
+
+        <div class="cat-runner" id="catRunner">
+            <div class="cat">🐱</div>
+            <div class="printer-icon">🖨️</div>
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        let currentJobId = null;
+
+        const imageInput = document.getElementById('imageInput');
+        const uploadArea = document.querySelector('.upload-area');
+        const preview = document.getElementById('preview');
+        const previewImage = document.getElementById('previewImage');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileDetails = document.getElementById('fileDetails');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const printBtn = document.getElementById('printBtn');
+        const loading = document.getElementById('loading');
+        const catRunner = document.getElementById('catRunner');
+        const status = document.getElementById('status');
+
+        // ドラッグ&ドロップ対応
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            if (!file.type.startsWith('image/')) {
+                showStatus('画像ファイルを選択してください。', 'error');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                showStatus('ファイルサイズは10MB以下にしてください。', 'error');
+                return;
+            }
+
+            selectedFile = file;
+            
+            // プレビュー表示
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImage.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+
+            // ファイル情報表示
+            fileDetails.innerHTML = `
+                <strong>ファイル名:</strong> ${file.name}<br>
+                <strong>サイズ:</strong> ${(file.size / 1024).toFixed(1)} KB<br>
+                <strong>タイプ:</strong> ${file.type}
+            `;
+            fileInfo.style.display = 'block';
+
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = '📤 画像をアップロード';
+            printBtn.style.display = 'none';
+            printBtn.textContent = '🖨️ プリント実行';
+            hideStatus();
+        }
+
+        async function uploadImage() {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+
+            showLoading(true);
+            uploadBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    currentJobId = result.jobId;
+                    showStatus(`✅ アップロード完了！<br>Job ID: ${result.jobId}`, 'success');
+                    printBtn.style.display = 'block';
+                } else {
+                    showStatus(`❌ アップロードエラー: ${result.message || 'Unknown error'}`, 'error');
+                    uploadBtn.disabled = false;
+                }
+            } catch (error) {
+                showStatus(`❌ ネットワークエラー: ${error.message}`, 'error');
+                uploadBtn.disabled = false;
+            }
+
+            showLoading(false);
+        }
+
+        async function printImage() {
+            if (!currentJobId) return;
+
+            // プリント中の可愛い猫のアニメーション表示
+            showCatRunner(true);
+            printBtn.disabled = true;
+            printBtn.textContent = '🐱 プリント中...';
+
+            try {
+                const response = await fetch(`/api/print/${currentJobId}`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus('🎉 プリント完了！猫ちゃんが頑張りました！次の画像を選択できます。', 'success');
+                    
+                    // 新しい画像の準備
+                    setTimeout(() => {
+                        resetForm();
+                    }, 2000);
+                } else {
+                    showStatus(`❌ プリントエラー: ${result.message || 'Unknown error'}`, 'error');
+                    printBtn.disabled = false;
+                    printBtn.textContent = '🖨️ プリント実行';
+                }
+            } catch (error) {
+                showStatus(`❌ ネットワークエラー: ${error.message}`, 'error');
+                printBtn.disabled = false;
+                printBtn.textContent = '🖨️ プリント実行';
+            }
+
+            showCatRunner(false);
+        }
+
+        function showLoading(show) {
+            loading.style.display = show ? 'block' : 'none';
+        }
+
+        function showCatRunner(show) {
+            catRunner.style.display = show ? 'block' : 'none';
+        }
+
+        function showStatus(message, type) {
+            status.innerHTML = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+
+        function hideStatus() {
+            status.style.display = 'none';
+        }
+
+        function resetForm() {
+            selectedFile = null;
+            currentJobId = null;
+            imageInput.value = '';
+            preview.style.display = 'none';
+            fileInfo.style.display = 'none';
+            uploadBtn.disabled = true;
+            uploadBtn.style.display = 'block';
+            printBtn.style.display = 'none';
+            printBtn.disabled = false;
+            hideStatus();
+        }
+    </script>
+</body>
+</html>
