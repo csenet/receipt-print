@@ -11,6 +11,17 @@ services:
       - ./uploads:/app/uploads
     restart: unless-stopped
     
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - ./cloudflared.yml:/etc/cloudflared/config.yml:ro
+      - ./cloudflared-credentials.json:/root/.cloudflared/cert.pem:ro
+    depends_on:
+      - web
+    restart: unless-stopped
+    network_mode: "host"
+    
   # Example printer API service (replace with your actual printer API)
   # printer-api:
   #   image: your-printer-api:latest

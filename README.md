@@ -125,3 +125,58 @@ python main.py
 ```bash
 docker-compose logs -f web
 ```
+
+## 🌐 Cloudflare Tunnel で公開
+
+### 1. Cloudflare Tunnel の作成
+
+```bash
+# Cloudflared をインストール
+# https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/install-and-setup/installation/
+
+# トンネルを作成
+cloudflared tunnel create receipt-print-service
+```
+
+### 2. 認証情報の設定
+
+```bash
+# 生成された credentials.json をコピー
+cp ~/.cloudflared/<tunnel-id>.json ./cloudflared-credentials.json
+```
+
+### 3. ドメインの設定
+
+`cloudflared.yml` を編集:
+
+```yaml
+tunnel: receipt-print-service
+credentials-file: /root/.cloudflared/cert.pem
+
+ingress:
+  - hostname: your-domain.com  # ← あなたのドメインに変更
+    service: http://localhost:3000
+  - service: http_status:404
+```
+
+### 4. DNS レコードの追加
+
+```bash
+cloudflared tunnel route dns receipt-print-service your-domain.com
+```
+
+### 5. 起動
+
+```bash
+docker-compose up -d
+```
+
+これで `https://your-domain.com` でスマホから世界中どこからでもアクセス可能！
+
+### セットアップスクリプト
+
+```bash
+./setup-cloudflare-tunnel.sh
+```
+
+詳細な手順とトラブルシューティングガイドが表示されます。

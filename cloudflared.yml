@@ -1,0 +1,7 @@
+tunnel: receipt-print-service
+credentials-file: /root/.cloudflared/cert.pem
+
+ingress:
+  - hostname: receipt-print.ueckoken.club
+    service: http://localhost:3000
+  - service: http_status:404
