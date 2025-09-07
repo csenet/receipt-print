@@ -203,32 +203,71 @@ async def print_image(job_id: str = FastAPIPath(...)):
             else:
                 jobs_db[job_id]["status"] = "failed"
                 jobs_db[job_id]["updated_at"] = datetime.now().isoformat()
-                print(f"Print service error: {response.status_code}, {response.text}")
+                
+                # レスポンスの詳細情報を取得
+                response_text = response.text
+                response_headers = dict(response.headers)
+                
+                print(f"Print service error details:")
+                print(f"  Status: {response.status_code}")
+                print(f"  Headers: {response_headers}")
+                print(f"  Content: {response_text}")
+                
+                # エラーレスポンスを解析
+                error_detail = {
+                    "status_code": response.status_code,
+                    "response_text": response_text,
+                    "headers": response_headers,
+                    "api_host": API_HOST
+                }
                 
                 raise HTTPException(
                     status_code=500, 
-                    detail=f"Print service returned error: {response.status_code} - {response.text}"
+                    detail=f"Printer API error (HTTP {response.status_code}): {response_text[:200]}... | API Host: {API_HOST}"
                 )
                 
     except requests.exceptions.RequestException as e:
         jobs_db[job_id]["status"] = "failed"
         jobs_db[job_id]["updated_at"] = datetime.now().isoformat()
-        print(f"Connection error: {str(e)}")
+        
+        print(f"Connection error details:")
+        print(f"  Exception type: {type(e).__name__}")
+        print(f"  Exception message: {str(e)}")
+        print(f"  API Host: {API_HOST}")
+        
+        # より詳細なエラーメッセージを生成
+        if isinstance(e, requests.exceptions.Timeout):
+            error_msg = f"Printer API timeout after 30 seconds. Check if printer service is running at {API_HOST}"
+        elif isinstance(e, requests.exceptions.ConnectionError):
+            error_msg = f"Cannot connect to printer API at {API_HOST}. Service may be down or unreachable."
+        elif isinstance(e, requests.exceptions.HTTPError):
+            error_msg = f"HTTP error from printer API: {str(e)}"
+        else:
+            error_msg = f"Network error connecting to printer API at {API_HOST}: {str(e)}"
         
         raise HTTPException(
             status_code=500, 
-            detail=f"Failed to connect to print service: {str(e)}"
+            detail=error_msg
         )
     except HTTPException:
         raise
     except Exception as e:
         jobs_db[job_id]["status"] = "failed"
         jobs_db[job_id]["updated_at"] = datetime.now().isoformat()
-        print(f"General print error: {str(e)}")
+        
+        print(f"General print error details:")
+        print(f"  Exception type: {type(e).__name__}")
+        print(f"  Exception message: {str(e)}")
+        print(f"  Job ID: {job_id}")
+        print(f"  File path: {job.get('file_path', 'unknown')}")
+        print(f"  API Host: {API_HOST}")
+        
+        import traceback
+        print(f"  Stack trace: {traceback.format_exc()}")
         
         raise HTTPException(
             status_code=500, 
-            detail=f"Print job failed: {str(e)}"
+            detail=f"Unexpected error during print job: {type(e).__name__}: {str(e)} | Job: {job_id} | API: {API_HOST}"
         )
     finally:
         # 変換された一時ファイルを削除

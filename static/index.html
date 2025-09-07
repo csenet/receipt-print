@@ -553,7 +553,32 @@
                     method: 'POST'
                 });
 
-                const result = await response.json();
+                console.log('Print response status:', response.status);
+                console.log('Print response headers:', response.headers.get('content-type'));
+
+                let result;
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    try {
+                        result = await response.json();
+                    } catch (jsonError) {
+                        console.error('JSON parse error:', jsonError);
+                        const textResponse = await response.text();
+                        console.error('Response text:', textResponse);
+                        throw new Error(`JSON parse failed: ${textResponse.substring(0, 100)}`);
+                    }
+                } else {
+                    // JSON以外のレスポンス（HTMLエラーページなど）
+                    const textResponse = await response.text();
+                    console.error('Non-JSON response:', textResponse);
+                    result = { 
+                        detail: `Server returned non-JSON response: ${textResponse.substring(0, 200)}`,
+                        success: false 
+                    };
+                }
+
+                console.log('Print result:', result);
 
                 if (response.ok) {
                     showStatus('🎉 プリント完了！猫ちゃんが頑張りました！次の画像を選択できます。', 'success');
@@ -563,11 +588,13 @@
                         resetForm();
                     }, 2000);
                 } else {
-                    showStatus(`❌ プリントエラー: ${result.message || 'Unknown error'}`, 'error');
+                    const errorMessage = result.detail || result.message || `HTTP ${response.status} エラー`;
+                    showStatus(`❌ プリントエラー: ${errorMessage}`, 'error');
                     printBtn.disabled = false;
                     printBtn.textContent = '🖨️ プリント実行';
                 }
             } catch (error) {
+                console.error('Print error:', error);
                 showStatus(`❌ ネットワークエラー: ${error.message}`, 'error');
                 printBtn.disabled = false;
                 printBtn.textContent = '🖨️ プリント実行';
