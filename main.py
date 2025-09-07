@@ -186,7 +186,8 @@ async def print_image(job_id: str = FastAPIPath(...)):
         with open(converted_file, "rb") as f:
             files = {"imgf": (job["filename"], f, "image/*")}
             
-            response = requests.post(f"{API_HOST}", files=files, timeout=30)
+            print(f"Sending to printer API: {API_HOST}/")
+            response = requests.post(f"{API_HOST}/", files=files, timeout=30)
             print(f"Printer API response: {response.status_code}")
             
             if response.status_code == 200:
