@@ -149,7 +149,7 @@ async def print_image(job_id: str = FastAPIPath(...)):
     if job_id not in jobs_db:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    job = jobs_db[job_id]
+    job = jobs_db[job_id]/idm
     print(f"Starting print job for: {job_id}, file: {job['filename']}")
     
     try:
@@ -186,11 +186,7 @@ async def print_image(job_id: str = FastAPIPath(...)):
         with open(converted_file, "rb") as f:
             files = {"imgf": (job["filename"], f, "image/*")}
             
-            # ランダムに /0 または /1 エンドポイントを選択
-            endpoint = random.choice([0, 1])
-            print(f"Sending to printer API: {API_HOST}/{endpoint}")
-            
-            response = requests.post(f"{API_HOST}/{endpoint}", files=files, timeout=30)
+            response = requests.post(f"{API_HOST}", files=files, timeout=30)
             print(f"Printer API response: {response.status_code}")
             
             if response.status_code == 200:
