@@ -149,7 +149,7 @@ async def print_image(job_id: str = FastAPIPath(...)):
     if job_id not in jobs_db:
         raise HTTPException(status_code=404, detail="Job not found")
     
-    job = jobs_db[job_id]/idm
+    job = jobs_db[job_id]
     print(f"Starting print job for: {job_id}, file: {job['filename']}")
     
     try:
